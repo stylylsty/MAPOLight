@@ -5,34 +5,107 @@
 ![Ray](https://img.shields.io/badge/RL-Ray%2FRLlib-green)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
-## 📖 Introduction (项目简介)
+## Introduction（项目简介）
 
-**MAPOLight** 是一个基于深度强化学习 (Deep Reinforcement Learning) 的智能交通信号控制系统。项目利用 **Ray/RLlib** 框架中的 **PPO (Proximal Policy Optimization)** 算法，在 **SUMO** 仿真环境中训练智能体以优化交通流。
+MAPOLight 是一个基于深度强化学习（Deep Reinforcement Learning）的交通信号控制系统。  
+本项目使用 Ray / RLlib 框架中的 PPO（Proximal Policy Optimization）算法，在 SUMO 仿真环境中训练智能体，以优化交通流效率。
 
-与传统控制系统不同，本项目集成了**事故模拟机制 (Accident Simulation)**，能够测试并训练 AI 在极端路况（如车道因事故封闭）下的应急疏导能力，从而实现更具鲁棒性的交通控制。
+与传统方法不同，本项目引入了事故模拟机制（Accident Simulation），用于评估和提升模型在突发事故、车道封闭等极端交通场景下的鲁棒性。
 
-## ✨ Key Features (核心功能)
+---
 
-* **PPO 算法控制**：使用稳定且高效的 PPO 算法进行交通信号决策。
-* **事故模拟机制**：支持随机或固定时间/地点生成故障车辆，模拟真实道路事故场景。
-* **极速训练 (Headless)**：利用 `LibSumo` 技术，无需图形界面即可进行高并发训练。
-* **可视化评估**：提供带有 SUMO GUI 的评估脚本，直观展示 AI 在事故场景下的表现。
-* **兼容性修复**：针对 Ray/RLlib 新版 API 进行了适配，确保在最新环境下稳定运行。
-* **CAV 扩展接口**：预留了网联车 (CAV) 感知和多灯协同 (Cooperative Control) 的代码接口。
+## Key Features（核心功能）
 
-## 📂 Project Structure (项目结构)
+- 基于 PPO 的交通信号控制
+- 支持随机或固定位置的事故模拟
+- 基于 LibSUMO 的无界面高速训练
+- 支持 SUMO GUI 的可视化评估
+- 兼容新版 Ray / RLlib API
+- 预留 CAV / 多路口协同扩展接口
 
-```text
-MAPOLight/
-├── train.py                # [核心] 训练脚本：定义 PPO 配置、训练循环及停止条件
-├── evaluate.py             # [核心] 评估脚本：加载模型并在 GUI 中演示效果
-├── env/                    # 环境定义模块
-│   ├── SignalEnv.py        # SUMO 环境主逻辑 (Step, Reset, 事故生成)
-│   ├── TrafficSignal.py    # 智能体行为定义 (动作空间、状态空间)
-│   └── networkdata.py      # 路网数据解析工具
-├── utils/                  # 工具包
-│   └── mypettingzoo.py     # PettingZoo 到 RLlib 的环境适配器
-├── sumo_files/             # SUMO 仿真文件
-│   ├── single.net.xml      # 路网拓扑结构
-│   └── 1groutes.xml        # 交通流/路由定义
-└── requirements.txt        # 项目依赖列表
+---
+
+## Project Structure（项目结构）
+
+MAPOLight/  
+├── train.py                训练脚本（PPO 配置与训练流程）  
+├── evaluate.py             评估脚本（SUMO GUI 可视化）  
+├── env/                    环境定义模块  
+│   ├── SignalEnv.py        SUMO 环境主逻辑  
+│   ├── TrafficSignal.py    智能体定义  
+│   └── networkdata.py      路网解析工具  
+├── utils/                  工具模块  
+│   └── mypettingzoo.py     PettingZoo 到 RLlib 适配器  
+├── sumo_files/             SUMO 仿真文件  
+│   ├── single.net.xml      路网结构  
+│   └── 1groutes.xml        交通流定义  
+└── requirements.txt        Python 依赖列表  
+
+---
+
+## Prerequisites（环境依赖）
+
+### 操作系统
+- 推荐 Linux（Ubuntu / WSL2）
+
+### SUMO 仿真器
+- 已正确安装 SUMO
+- 已配置 SUMO_HOME 环境变量
+
+### Python 依赖
+建议在虚拟环境中安装以下依赖：
+
+pip install ray[rllib] pettingzoo gymnasium sumolib traci torch pandas numpy
+
+---
+
+## Usage（使用方法）
+
+### 模型训练
+
+运行以下命令开始训练（默认不启用 GUI）：
+
+python train.py
+
+训练配置说明：
+- 使用 CPU 训练（num_gpus = 0）
+- 停止条件：平均奖励 ≥ 500 或训练轮数达到 500
+- 模型保存路径：~/ray_results/PPO/
+
+---
+
+### 模型评估与可视化
+
+使用训练完成的模型进行评估：
+
+python evaluate.py --checkpoint 路径/到/checkpoint
+
+示例：
+
+python evaluate.py --checkpoint /home/wsl/ray_results/PPO/PPO_signal_env_xxxx/checkpoint_000500
+
+说明：
+- SUMO GUI 打开后，点击左上角绿色 Play 按钮开始仿真
+- 默认在第 1800 秒，-gneE10 车道会发生模拟事故
+
+---
+
+## Configuration（关键参数）
+
+accident_num（train.py）：事故数量  
+accident_duration（train.py）：事故持续时间（秒）  
+reward_fn（SignalEnv.py）：奖励函数类型（推荐 average-speed）  
+_enable_learner_api（train.py）：必须设为 False  
+num_gpus（train.py）：无 GPU 环境设为 0  
+
+---
+
+## Contributing
+
+欢迎提交 Issue 或 Pull Request。
+
+---
+
+## License
+
+MIT License
